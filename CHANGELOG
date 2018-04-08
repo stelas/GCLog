@@ -1,0 +1,29 @@
+#############
+# CHANGELOG #
+#############
+
+Version 0.2.3 (2016-02-28)
+=========================
++ Added manpage
+* Renamed some files
+- No binary stripping
+
+Version 0.2.2 (2015-04-25)
+==========================
+* Revised init scripts
+
+Version 0.2.1 (2015-03-01)
+==========================
++ Added packaging scripts for Debian and OpenWrt
+
+Version 0.2 (2015-02-22)
+========================
++ Added simple Geiger simulator
++ Added support for Safecast API
+- Disabled IPv6
+* Fixed timezone problem
+* Minor bug fixes
+
+Version 0.1 (2015-02-01)
+========================
+* First public release

@@ -1,0 +1,10 @@
+#!/usr/bin/make -f
+
+export DEB_BUILD_HARDENING=1
+
+%:
+	dh $@
+
+# quick file permission fix
+override_dh_fixperms:
+	dh_fixperms -Xetc/gclog.conf

@@ -1,0 +1,16 @@
+#!/bin/sh /etc/rc.common
+# GCLOG init script
+# Copyright (C) 2007 OpenWrt.org
+
+START=99
+STOP=20
+
+start() {
+		echo start
+		/usr/bin/gclog -c /etc/gclog.conf
+}
+
+stop() {
+		echo stop
+		/usr/bin/killall gclog
+}

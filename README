@@ -1,0 +1,43 @@
+   ___    Geiger Counter LOGger
+   \_/    Version 0.2.3
+.--,O.--,
+ \/   \/  Copyright (C) 2014-16 Steffen Lange, gclog@stelas.de
+
+This program comes with ABSOLUTELY NO WARRANTY.
+This is free software, and you are welcome to redistribute it
+under certain conditions. See the file COPYING for details.
+
+GCLOG is a lightweight daemon running in the background and
+constantly reporting your Geiger counter readings to various
+radiation monitoring websites. With a small footprint and
+minimal dependencies it is aimed to run on Linux embedded
+computers, like Raspberry Pi or TP-Link WR703N.
+
+Supported Geiger counter devices:
+- GQ Electronics GMC-280, GMC-300, GMC-300E, GMC-300E Plus, GMC-320 and
+  GMC-320 Plus
+  http://www.gqelectronicsllc.com/comersus/store/LeftStart.asp?idCategory=50
+- DIY Geiger Kit GK-B5 and GK-Plus
+  https://sites.google.com/site/diygeigercounter/
+- RH Electronics MyGeiger, MyGeiger 2, Universal SMT Kit and Arduino IDE Kit
+  http://www.rhelectronics.net/store/diy-geiger-counter-kit.html
+- NET-IO Devices GC08 and GC10
+  http://www.netiodev.com/
+- Arduino Geiger PCB
+  http://arduino-geiger-pcb.blogspot.de/
+
+Supported radiation monitoring websites:
+- radmon.org
+- Safecast.org
+- NETC.com
+Please read the terms of service before using these websites.
+
+Installation
+------------
+1. Download, untar and make
+2. Copy daemon executable to /usr/local/bin/gclog
+   and configuration file to /etc/gclog.conf
+3. Modify configuration to your needs
+4. Start GCLOG: gclog -d -c /etc/gclog.conf
+5. Monitor syslog
+6. Stop GCLOG: killall gclog

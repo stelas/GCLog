@@ -1,0 +1,29 @@
+Packaging Geiger Counter Logger
+===============================
+
+OpenWrt
+-------
+Recipe from: https://wiki.openwrt.org/doc/howto/obtain.firmware.sdk
+
+1. Download precompiled SDK (.tar.bz2 archive)
+2. Copy openwrt/Makefile to <SDK>/package/gclog/
+3. make package/gclog/download
+4. make package/gclog/compile
+5. IPK package is created in <SDK>/bin directory
+
+Debian
+------
+Recipe from: https://wiki.debian.org/IntroDebianPackaging
+
+1. apt-get install build-essential debhelper devscripts
+2. Rename gclog-<version>.tar.gz to gclog_<version>.orig.tar.gz
+3. Untar source archive
+4. debuild -us -uc
+5. DEB package is created in parent directory
+
+RPM-based distro
+----------------
+1. Install gcc, make and rpm-build
+2. Copy gclog-<version>.tar.gz to ~/rpmbuild/SOURCES/
+3. rpmbuild -ba gclog.spec
+4. RPM package is created in ~/rpmbuild/RPMS directory

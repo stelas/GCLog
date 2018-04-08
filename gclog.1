@@ -1,0 +1,87 @@
+.TH GCLOG 1 "February 2016" "GCLOG 0.2" "Geiger Counter Logger"
+
+.SH NAME
+.B gclog
+\- Geiger Counter Logger Daemon
+
+.SH SYNOPSIS
+.B gclog
+.RB [ \-c
+.IR file ]
+.RB [ \-d ]
+
+.SH DESCRIPTION
+\fBGCLOG\fP is a lightweight daemon running in the background and constantly reporting your Geiger counter readings to various radiation monitoring websites. With a small footprint and minimal dependencies it is aimed to run on Linux embedded computers.
+
+.SH OPTIONS
+.TP
+.B -c \fIfile\fP
+Load configuration from file.
+
+.TP
+.B -d
+Activate verbose mode.
+
+.SH CONFIGURATION FILE OPTIONS
+.TP
+.B device.type
+Geiger counter type:
+
+\fBgq\fP	- GQ GMC Geiger Counter (GQ-RFC1201 protocol)
+
+\fBdiy\fP	- DIY/MyGeiger/NET-IO Geiger Kit or compatible
+
+\fBsim\fP	- Geiger simulator (reads 12 cpm)
+
+.TP
+.B device.port
+Serial device filename.
+
+Example: \fI/dev/ttyUSB0\fP
+
+.TP
+.B location
+Name of your sensor location (required for Safecast).
+
+Example: Berlin, DE
+
+.TP
+.B latitude
+Latitude of your sensor position (required for Safecast).
+
+Example: 52.5163
+
+.TP
+.B longitude
+Longitude of your sensor position (required for Safecast).
+
+Example: 13.3777
+
+.TP
+.B interval
+Polling interval in seconds.
+
+Range: 60..3600
+
+.TP
+.B radmon.user
+Your forum username (required for radmon).
+
+.TP
+.B radmon.pass
+Your password received via PM from `mw0uzo' (required for radmon).
+
+.TP
+.B safecast.key
+Your API key is listed on your profile page (required for Safecast).
+
+.TP
+.B safecast.device
+Find your device ID on the Safecast list (required for Safecast).
+
+.TP
+.B netc.id
+First use their `\fIwapp4netc.exe\fP' software to register your Geiger counter ID (required for Nuclear Emergency Tracking Center).
+
+.SH AUTHOR
+Steffen Lange (gclog@stelas.de)
