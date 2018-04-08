@@ -7,10 +7,16 @@ Group:          Applications/System
 Url:            http://www.dateihal.de/cms/gclog
 Source0:        http://www.dateihal.de/%{name}/%{name}-%{version}.tar.gz
 
+%if 0%{?suse_version}
+PreReq: %insserv_prereq
+%endif
+
 %description
 GCLOG is a lightweight daemon running in the background and
 constantly reporting your Geiger counter readings to various
 radiation monitoring websites.
+
+%global debug_package %{nil}
 
 %prep
 %setup -q
