@@ -99,6 +99,24 @@ int geiger_get_cpm(enum EGeiger type, int device) {
 	return 0;
 }
 
+bool send_gmcmap(const char *user, const char *device, int cpm) {
+	char *req;
+	int sock;
+	char buf[BUF_SIZE] = { 0 };
+
+	asprintf(&req, "GET /log2.asp?AID=%s&GID=%s&CPM=%d HTTP/1.1\r\nHost: www.gmcmap.com\r\n\r\n", user, device, cpm);
+
+	if ((sock = tcp_connect("www.gmcmap.com", "80")) != -1) {
+		tcp_send(sock, req);
+		tcp_receive(sock, buf, BUF_SIZE);
+		tcp_close(sock);
+	}
+
+	free(req);
+
+	return sock != -1 && strstr(buf, "OK.") != NULL;
+}
+
 bool send_netc(const char *id, int cpm) {
 	char *req;
 	int sock;
@@ -181,6 +199,7 @@ int main(int argc, char *argv[]) {
 	char *radmon_user = NULL, *radmon_pass = NULL;
 	char *safecast_key = NULL;
 	unsigned int safecast_device = 0;
+	char *gmcmap_user = NULL, *gmcmap_device = NULL;
 
 	print_usage();
 
@@ -247,6 +266,10 @@ int main(int argc, char *argv[]) {
 					safecast_key = string_copy(val);
 				if ((val = map_get(ini, "safecast.device")) != NULL)
 					safecast_device = atoi(val);
+				if ((val = map_get(ini, "gmcmap.user")) != NULL)
+					gmcmap_user = string_copy(val);
+				if ((val = map_get(ini, "gmcmap.device")) != NULL)
+					gmcmap_device = string_copy(val);
 				map_free(ini);
 				break;
 
@@ -256,7 +279,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (debug)
-		printf("Configuration:\n\t\t%s on %s,\n\t\tLocation: %s (%f, %f)\n\t\tnetc.com: %s,\n\t\tradmon.org: %s / %s,\n\t\tsafecast.org: %s (Device ID %u),\n\t\t%us interval\n\n", GeigerNames[device_type], device_port, location, latitude, longitude, netc_id, radmon_user, radmon_pass, safecast_key, safecast_device, interval);
+		printf("Configuration:\n\t\t%s on %s,\n\t\tLocation: %s (%f, %f)\n\t\tnetc.com: %s,\n\t\tradmon.org: %s / %s,\n\t\tsafecast.org: %s (Device ID %u),\n\t\tgmcmap.com: %s (Device ID %s),\n\t\t%us interval\n\n", GeigerNames[device_type], device_port, location, latitude, longitude, netc_id, radmon_user, radmon_pass, safecast_key, safecast_device, gmcmap_user, gmcmap_device, interval);
 
 	int fd = -1;
 
@@ -295,6 +318,9 @@ int main(int argc, char *argv[]) {
 					if (string_isset(safecast_key) && string_isset(location))
 						if(!send_safecast(safecast_key, safecast_device, cpm, tm, latitude, longitude, location))
 							log_warn("Upload to safecast.org failed.");
+					if (string_isset(gmcmap_user) && string_isset(gmcmap_device))
+						if(!send_gmcmap(gmcmap_user, gmcmap_device, cpm))
+							log_warn("Upload to gmcmap.com failed.");
 
 					time(&last);
 					sum = count = 0;
@@ -318,6 +344,8 @@ int main(int argc, char *argv[]) {
 	try_free(radmon_user);
 	try_free(radmon_pass);
 	try_free(safecast_key);
+	try_free(gmcmap_user);
+	try_free(gmcmap_device);
 
 	log_close();
 
