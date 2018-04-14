@@ -1,7 +1,7 @@
    ___    Geiger Counter LOGger
-   \_/    Version 0.2.3
+   \_/    Version 0.2.4
 .--,O.--,
- \/   \/  Copyright (C) 2014-16 Steffen Lange, gclog@stelas.de
+ \/   \/  Copyright (C) 2014-18 Steffen Lange, gclog@stelas.de
 
 This program comes with ABSOLUTELY NO WARRANTY.
 This is free software, and you are welcome to redistribute it
@@ -27,6 +27,7 @@ Supported Geiger counter devices:
   http://arduino-geiger-pcb.blogspot.de/
 
 Supported radiation monitoring websites:
+- GMCMAP.com
 - radmon.org
 - Safecast.org
 - NETC.com

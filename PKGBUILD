@@ -1,6 +1,6 @@
 # Maintainer: Steffen Lange <gclog@stelas.de>
 pkgname=gclog
-pkgver=0.2.3
+pkgver=0.2.4
 pkgrel=1
 pkgdesc="Geiger Counter Logger"
 arch=('i686' 'x86_64')

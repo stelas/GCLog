@@ -14,8 +14,8 @@
 #include "gqgeiger.h"
 #include "tcpcli.h"
 
-#define GCLOG_VERSION	"0.2.3"
-#define GCLOG_BUILD	"2016-02-28"
+#define GCLOG_VERSION	"0.2.4"
+#define GCLOG_BUILD	"2018-04-14"
 #define BUF_SIZE	1000
 #ifndef MIN
 #define MIN(a,b)	((a)<(b)?(a):(b))
@@ -179,7 +179,7 @@ void print_usage() {
 	printf("   ___    Geiger Counter LOGger daemon\n");
 	printf("   \\_/    Version %s (Build %s)\n", GCLOG_VERSION, GCLOG_BUILD);
 	printf(".--,O.--,\n");
-	printf(" \\/   \\/  Copyright (C) 2014-16 Steffen Lange, gclog@stelas.de\n\n");
+	printf(" \\/   \\/  Copyright (C) 2014-18 Steffen Lange, gclog@stelas.de\n\n");
 	printf("This program comes with ABSOLUTELY NO WARRANTY.\n");
 	printf("This is free software, and you are welcome to redistribute it\n");
 	printf("under certain conditions. See the file COPYING for details.\n\n");
@@ -279,7 +279,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (debug)
-		printf("Configuration:\n\t\t%s on %s,\n\t\tLocation: %s (%f, %f)\n\t\tnetc.com: %s,\n\t\tradmon.org: %s / %s,\n\t\tsafecast.org: %s (Device ID %u),\n\t\tgmcmap.com: %s (Device ID %s),\n\t\t%us interval\n\n", GeigerNames[device_type], device_port, location, latitude, longitude, netc_id, radmon_user, radmon_pass, safecast_key, safecast_device, gmcmap_user, gmcmap_device, interval);
+		printf("Configuration:\n\t\t%s on %s,\n\t\tLocation: %s (%f, %f)\n\t\tnetc.com: %s,\n\t\tradmon.org: %s / %s,\n\t\tsafecast.org: %s / Device ID %u,\n\t\tgmcmap.com: %s / Device ID %s,\n\t\t%us interval\n\n", GeigerNames[device_type], device_port, location, latitude, longitude, netc_id, radmon_user, radmon_pass, safecast_key, safecast_device, gmcmap_user, gmcmap_device, interval);
 
 	int fd = -1;
 

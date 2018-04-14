@@ -1,3 +1,9 @@
+gclog (0.2.4-1) unstable; urgency=low
+
+  * Minor enhancements
+
+ -- Steffen Lange <gclog@stelas.de>  Sat, 14 Apr 2018 12:00:00 +0200
+
 gclog (0.2.3-1) unstable; urgency=low
 
   * Minor fixes
