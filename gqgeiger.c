@@ -35,7 +35,7 @@ int gq_get_cpm(int device) {
 	if (gq_write(device, cmd) == (ssize_t) strlen(cmd))
 		gq_read(device, buf, 2);
 
-	return (buf[0] & 0x3f) * 256 + buf[1];	// upper 2 bits masked out
+	return buf[0] * 256 + buf[1];
 }
 
 bool gq_set_heartbeat_off(int device) {
@@ -82,7 +82,7 @@ bool gq_write_ack(int device, const char *cmd) {
 }
 
 int gq_write(int device, const char *cmd) {
-	return gq_flush(device) ? write(device, cmd, strlen(cmd)) : -1;	// clear buffer before send
+	return write(device, cmd, strlen(cmd));
 }
 
 int gq_read(int device, char *buf, unsigned int len) {
