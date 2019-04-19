@@ -7,7 +7,7 @@ all: gclog
 
 gclog: $(OBJECTS)
 	$(CC) $(LDFLAGS) -o $@ $(OBJECTS)
-	which upx >/dev/null 2>&1 && upx -9 -qq $@ || true
+#	which upx >/dev/null 2>&1 && upx -9 -qq $@ || true
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $<

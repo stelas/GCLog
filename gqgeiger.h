@@ -12,7 +12,7 @@
  GQ Geiger Counter Communication Protocol: http://www.gqelectronicsllc.com/download/GQ-RFC1201.txt
 */
 
-int gq_open(const char *device);
+int gq_open(const char *device, speed_t baud);
 void gq_close(int device);
 int gq_get_cpm(int device);
 bool gq_set_heartbeat_off(int device);

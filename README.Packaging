@@ -3,7 +3,7 @@ Packaging Geiger Counter Logger
 
 OpenWrt
 -------
-Recipe from: https://openwrt.org/docs/guide-developer/obtain.firmware.sdk
+Recipe from: https://openwrt.org/docs/guide-developer/using_the_sdk
 
 1. Download precompiled SDK (.tar.bz2 archive)
 2. Copy openwrt/Makefile to <SDK>/package/gclog/

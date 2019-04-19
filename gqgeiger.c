@@ -1,6 +1,6 @@
 #include "gqgeiger.h"
 
-int gq_open(const char *device) {
+int gq_open(const char *device, speed_t baud) {
 	int fd = -1;
 	struct termios tio;
 
@@ -10,7 +10,7 @@ int gq_open(const char *device) {
 	tio.c_cc[VTIME] = 5;
 
 	if ((fd = open(device, O_RDWR)) != -1) {
-		if (cfsetspeed(&tio, B57600) == 0)		// 57600 baud
+		if (cfsetspeed(&tio, baud) == 0)		// usually 57600 or 115200 baud
 			if (tcsetattr(fd, TCSANOW, &tio) == 0)
 				// Turn off heartbeat,
 				if (gq_set_heartbeat_off(fd))
@@ -35,7 +35,8 @@ int gq_get_cpm(int device) {
 	if (gq_write(device, cmd) == (ssize_t) strlen(cmd))
 		gq_read(device, buf, 2);
 
-	return buf[0] * 256 + buf[1];
+	// Mask out upper 2 bits as mentioned in GQ-RFC1201.
+	return (buf[0] & 0x3f) * 256 + buf[1];
 }
 
 bool gq_set_heartbeat_off(int device) {

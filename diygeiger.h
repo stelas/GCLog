@@ -12,7 +12,7 @@
  Specification of GC10 Data I/O Interface: http://netiodev.com/GC10/GC10_UART_SPEC.pdf
 */
 
-int diy_open(const char *device);
+int diy_open(const char *device, speed_t baud);
 void diy_close(int device);
 int diy_get_cpm(int device);
 int diy_read(int device, char *buf, unsigned int len);

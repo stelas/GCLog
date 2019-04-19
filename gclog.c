@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <string.h>
+#include <termios.h>
 #include <time.h>
 #include <unistd.h>
 #include "logger.h"
@@ -60,19 +61,33 @@ void signal_handler(int sig) {
 	}
 }
 
-int geiger_open(enum EGeiger type, const char *device) {
+int baud_rate(int bps) {
+	switch (bps) {
+		case 1200: return B1200;
+		case 2400: return B2400;
+		case 4800: return B4800;
+		case 9600: return B9600;
+		case 19200: return B19200;
+		case 38400: return B38400;
+		case 57600: return B57600;
+		case 115200: return B115200;
+		default: return -1;	// Undefined baud rate
+	}
+}
+
+int geiger_open(enum EGeiger type, const char *device, speed_t baud) {
 	int fd = -1;
 	time_t t = time(NULL);
 	struct tm *tm = gmtime(&t);
 
 	if (type == GQ) {
-		if ((fd = gq_open(device)) != -1) {
+		if ((fd = gq_open(device, baud)) != -1) {
 			gq_set_date(fd, tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday);
 			gq_set_time(fd, tm->tm_hour,        tm->tm_min,     tm->tm_sec);
 		}
 	}
 	else if (type == DIY) {
-		fd = diy_open(device);
+		fd = diy_open(device, baud);
 	}
 	else if (type == SIM) {
 		fd = STDIN_FILENO;
@@ -193,6 +208,7 @@ int main(int argc, char *argv[]) {
 	unsigned int interval = 60;
 	enum EGeiger device_type = SIM;
 	char *device_port = NULL;
+	speed_t device_baudrate = B9600;
 	float latitude = 0.0, longitude = 0.0;
 	char *location = NULL;
 	char *netc_id = NULL;
@@ -250,6 +266,8 @@ int main(int argc, char *argv[]) {
 				}
 				if ((val = map_get(ini, "device.port")) != NULL)
 					device_port = string_copy(val);
+				if ((val = map_get(ini, "device.baudrate")) != NULL)
+					device_baudrate = baud_rate(atoi(val));
 				if ((val = map_get(ini, "latitude")) != NULL)
 					latitude = MIN(MAX(atof(val), -90.0), 90.0);
 				if ((val = map_get(ini, "longitude")) != NULL)
@@ -283,7 +301,7 @@ int main(int argc, char *argv[]) {
 
 	int fd = -1;
 
-	if (string_isset(device_port) && ((fd = geiger_open(device_type, device_port)) != -1)) {
+	if (string_isset(device_port) && ((fd = geiger_open(device_type, device_port, device_baudrate)) != -1)) {
 		fclose(stdin);
 		fclose(stdout);
 		fclose(stderr);

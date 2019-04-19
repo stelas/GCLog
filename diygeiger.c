@@ -1,6 +1,6 @@
 #include "diygeiger.h"
 
-int diy_open(const char *device) {
+int diy_open(const char *device, speed_t baud) {
 	int fd = -1;
 	struct termios tio;
 
@@ -10,7 +10,7 @@ int diy_open(const char *device) {
 	tio.c_cc[VTIME] = 5;
 
 	if ((fd = open(device, O_RDWR)) != -1) {
-		if (cfsetspeed(&tio, B9600) == 0)		// 9600 baud
+		if (cfsetspeed(&tio, baud) == 0)		// usually 9600 baud
 			if (tcsetattr(fd, TCSANOW, &tio) == 0)
 				// Return file descriptor,
 				return fd;
