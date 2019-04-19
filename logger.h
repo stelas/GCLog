@@ -8,5 +8,6 @@ void log_close();
 void log_inform(const char *msg);
 void log_warn(const char *msg);
 void log_exclaim(const char *msg);
+void log_debug(const char *msg);
 
 #endif

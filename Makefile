@@ -23,4 +23,4 @@ install: all
 	install -m 644 gclog.1 $(DESTDIR)$(PREFIX)/share/man/man1/
 
 clean:
-	-rm $(OBJECTS) 2>/dev/null
+	rm -f $(OBJECTS)

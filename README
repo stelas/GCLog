@@ -39,6 +39,6 @@ Installation
 2. Copy daemon executable to /usr/local/bin/gclog
    and configuration file to /etc/gclog.conf
 3. Modify configuration to your needs
-4. Start GCLOG: gclog -d -c /etc/gclog.conf
+4. Start GCLOG: gclog -v -c /etc/gclog.conf
 5. Monitor syslog
 6. Stop GCLOG: killall gclog

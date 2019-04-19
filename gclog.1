@@ -8,7 +8,7 @@
 .B gclog
 .RB [ \-c
 .IR file ]
-.RB [ \-d ]
+.RB [ \-v ]
 
 .SH DESCRIPTION
 \fBGCLOG\fP is a lightweight daemon running in the background and constantly reporting your Geiger counter readings to various radiation monitoring websites. With a small footprint and minimal dependencies it is aimed to run on Linux embedded computers.
@@ -19,7 +19,7 @@
 Load configuration from file.
 
 .TP
-.B -d
+.B -v
 Activate verbose mode.
 
 .SH CONFIGURATION FILE OPTIONS
@@ -43,7 +43,7 @@ Example: \fI/dev/ttyUSB0\fP
 .B device.baudrate
 Serial port baud rate.
 
-Example: \fI57600\fP
+Example: 57600
 
 .TP
 .B location

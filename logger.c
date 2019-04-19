@@ -19,3 +19,7 @@ void log_warn(const char *msg) {
 void log_exclaim(const char *msg) {
 	syslog(LOG_ERR, "[ERROR] %s", msg);
 }
+
+void log_debug(const char *msg) {
+	syslog(LOG_DEBUG, "[DEBUG] %s", msg);
+}

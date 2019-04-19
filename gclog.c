@@ -15,8 +15,8 @@
 #include "gqgeiger.h"
 #include "tcpcli.h"
 
-#define GCLOG_VERSION	"0.2.4"
-#define GCLOG_BUILD	"2018-04-14"
+#define GCLOG_VERSION	"0.2.5"
+#define GCLOG_BUILD	"2019-04-19"
 #define BUF_SIZE	1000
 #ifndef MIN
 #define MIN(a,b)	((a)<(b)?(a):(b))
@@ -25,9 +25,23 @@
 #define MAX(a,b)	((a)>(b)?(a):(b))
 #endif
 
-enum EGeiger { SIM, DIY, GQ };
+typedef enum { SIM, DIY, GQ } Geiger;
 static const char *GeigerNames[] = { "Geiger simulator", "DIY/MyGeiger/NET-IO Geiger Kit", "GQ GMC Geiger Counter" };
 static volatile bool Running = true;
+
+typedef struct {
+	unsigned int interval;
+	Geiger device_type;
+	char *device_port;
+	speed_t device_baudrate;
+	float latitude, longitude;
+	char *location;
+	char *netc_id;
+	char *radmon_user, *radmon_pass;
+	char *safecast_key;
+	unsigned int safecast_device;
+	char *gmcmap_user, *gmcmap_device;
+} Settings;
 
 int div_round_closest(int n, int d) {
 	return (n < 0) ^ (d < 0) ? (n - d/2) / d : (n + d/2) / d;
@@ -63,19 +77,28 @@ void signal_handler(int sig) {
 
 int baud_rate(int bps) {
 	switch (bps) {
-		case 1200: return B1200;
-		case 2400: return B2400;
-		case 4800: return B4800;
-		case 9600: return B9600;
-		case 19200: return B19200;
-		case 38400: return B38400;
-		case 57600: return B57600;
-		case 115200: return B115200;
-		default: return -1;	// Undefined baud rate
+		case 1200:
+			return B1200;
+		case 2400:
+			return B2400;
+		case 4800:
+			return B4800;
+		case 9600:
+			return B9600;
+		case 19200:
+			return B19200;
+		case 38400:
+			return B38400;
+		case 57600:
+			return B57600;
+		case 115200:
+			return B115200;
+		default:
+			return -1;	// Undefined baud rate.
 	}
 }
 
-int geiger_open(enum EGeiger type, const char *device, speed_t baud) {
+int geiger_open(Geiger type, const char *device, speed_t baud) {
 	int fd = -1;
 	time_t t = time(NULL);
 	struct tm *tm = gmtime(&t);
@@ -96,20 +119,20 @@ int geiger_open(enum EGeiger type, const char *device, speed_t baud) {
 	return fd;
 }
 
-void geiger_close(enum EGeiger type, int device) {
+void geiger_close(Geiger type, int device) {
 	if (type == GQ)
 		gq_close(device);
 	else if (type == DIY)
 		diy_close(device);
 }
 
-int geiger_get_cpm(enum EGeiger type, int device) {
+int geiger_get_cpm(Geiger type, int device) {
 	if (type == GQ)
 		return gq_get_cpm(device);
 	else if (type == DIY)
 		return diy_get_cpm(device);
 	else if (type == SIM)
-		return 12;	// Guaranteed to be random. :-)
+		return 12;	// Guaranteed to be random. ;-)
 
 	return 0;
 }
@@ -198,24 +221,44 @@ void print_usage() {
 	printf("This program comes with ABSOLUTELY NO WARRANTY.\n");
 	printf("This is free software, and you are welcome to redistribute it\n");
 	printf("under certain conditions. See the file COPYING for details.\n\n");
-	printf("Usage: gclog -c <file> [-d]\n");
+	printf("Usage: gclog -c <file> [-v]\n");
 	printf("  -c <file>  load configuration from file\n");
-	printf("  -d         activate verbose mode\n\n");
+	printf("  -v         activate verbose mode\n\n");
+}
+
+void init_settings(Settings *s) {
+	s->interval = 60;
+	s->device_type = SIM;
+	s->device_port = NULL;
+	s->device_baudrate = B9600;
+	s->latitude = 0.0;
+	s->longitude = 0.0;
+	s->location = NULL;
+	s->netc_id = NULL;
+	s->radmon_user = NULL;
+	s->radmon_pass = NULL;
+	s->safecast_key = NULL;
+	s->safecast_device = 0;
+	s->gmcmap_user = NULL;
+	s->gmcmap_device = NULL;
+}
+
+void free_settings(Settings *s) {
+	try_free(s->device_port);
+	try_free(s->location);
+	try_free(s->netc_id);
+	try_free(s->radmon_user);
+	try_free(s->radmon_pass);
+	try_free(s->safecast_key);
+	try_free(s->gmcmap_user);
+	try_free(s->gmcmap_device);
 }
 
 int main(int argc, char *argv[]) {
-	bool debug = false;
-	unsigned int interval = 60;
-	enum EGeiger device_type = SIM;
-	char *device_port = NULL;
-	speed_t device_baudrate = B9600;
-	float latitude = 0.0, longitude = 0.0;
-	char *location = NULL;
-	char *netc_id = NULL;
-	char *radmon_user = NULL, *radmon_pass = NULL;
-	char *safecast_key = NULL;
-	unsigned int safecast_device = 0;
-	char *gmcmap_user = NULL, *gmcmap_device = NULL;
+	bool verbose = false;
+
+	Settings cfg;
+	init_settings(&cfg);
 
 	print_usage();
 
@@ -246,48 +289,48 @@ int main(int argc, char *argv[]) {
 	struct map_t *ini;
 	char *val;
 
-	while ((opt = getopt(argc, argv, "c:d")) != -1) {
+	while ((opt = getopt(argc, argv, "c:v")) != -1) {
 		switch (opt) {
-			case 'd':
-				debug = true;
+			case 'v':
+				verbose = true;
 				break;
 
 			case 'c':
 				ini = load_ini(optarg);
 				if ((val = map_get(ini, "interval")) != NULL)
-					interval = MAX(atoi(val), 1);
+					cfg.interval = MAX(atoi(val), 1);
 				if ((val = map_get(ini, "device.type")) != NULL) {
 					if (strcmp(val, "sim") == 0)
-						device_type = SIM;
+						cfg.device_type = SIM;
 					else if (strcmp(val, "diy") == 0)
-						device_type = DIY;
+						cfg.device_type = DIY;
 					else if (strcmp(val, "gq") == 0)
-						device_type = GQ;
+						cfg.device_type = GQ;
 				}
 				if ((val = map_get(ini, "device.port")) != NULL)
-					device_port = string_copy(val);
+					cfg.device_port = string_copy(val);
 				if ((val = map_get(ini, "device.baudrate")) != NULL)
-					device_baudrate = baud_rate(atoi(val));
+					cfg.device_baudrate = baud_rate(atoi(val));
 				if ((val = map_get(ini, "latitude")) != NULL)
-					latitude = MIN(MAX(atof(val), -90.0), 90.0);
+					cfg.latitude = MIN(MAX(atof(val), -90.0), 90.0);
 				if ((val = map_get(ini, "longitude")) != NULL)
-					longitude = MIN(MAX(atof(val), -180.0), 180.0);
+					cfg.longitude = MIN(MAX(atof(val), -180.0), 180.0);
 				if ((val = map_get(ini, "location")) != NULL)
-					location = string_copy(val);
+					cfg.location = string_copy(val);
 				if ((val = map_get(ini, "netc.id")) != NULL)
-					netc_id = string_copy(val);
+					cfg.netc_id = string_copy(val);
 				if ((val = map_get(ini, "radmon.user")) != NULL)
-					radmon_user = string_copy(val);
+					cfg.radmon_user = string_copy(val);
 				if ((val = map_get(ini, "radmon.pass")) != NULL)
-					radmon_pass = string_copy(val);
+					cfg.radmon_pass = string_copy(val);
 				if ((val = map_get(ini, "safecast.key")) != NULL)
-					safecast_key = string_copy(val);
+					cfg.safecast_key = string_copy(val);
 				if ((val = map_get(ini, "safecast.device")) != NULL)
-					safecast_device = atoi(val);
+					cfg.safecast_device = atoi(val);
 				if ((val = map_get(ini, "gmcmap.user")) != NULL)
-					gmcmap_user = string_copy(val);
+					cfg.gmcmap_user = string_copy(val);
 				if ((val = map_get(ini, "gmcmap.device")) != NULL)
-					gmcmap_device = string_copy(val);
+					cfg.gmcmap_device = string_copy(val);
 				map_free(ini);
 				break;
 
@@ -296,12 +339,12 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	if (debug)
-		printf("Configuration:\n\t\t%s on %s,\n\t\tLocation: %s (%f, %f)\n\t\tnetc.com: %s,\n\t\tradmon.org: %s / %s,\n\t\tsafecast.org: %s / Device ID %u,\n\t\tgmcmap.com: %s / Device ID %s,\n\t\t%us interval\n\n", GeigerNames[device_type], device_port, location, latitude, longitude, netc_id, radmon_user, radmon_pass, safecast_key, safecast_device, gmcmap_user, gmcmap_device, interval);
+	if (verbose)
+		printf("Configuration:\n\t\t%s on %s @ %#07o,\n\t\tLocation: %s (%.4f, %.4f)\n\t\tnetc.com: %s,\n\t\tradmon.org: %s / %s,\n\t\tsafecast.org: %s / Device ID %u,\n\t\tgmcmap.com: %s / Device ID %s,\n\t\t%us interval\n\n", GeigerNames[cfg.device_type], cfg.device_port, cfg.device_baudrate, cfg.location, cfg.latitude, cfg.longitude, cfg.netc_id, cfg.radmon_user, cfg.radmon_pass, cfg.safecast_key, cfg.safecast_device, cfg.gmcmap_user, cfg.gmcmap_device, cfg.interval);
 
 	int fd = -1;
 
-	if (string_isset(device_port) && ((fd = geiger_open(device_type, device_port, device_baudrate)) != -1)) {
+	if (string_isset(cfg.device_port) && ((fd = geiger_open(cfg.device_type, cfg.device_port, cfg.device_baudrate)) != -1)) {
 		fclose(stdin);
 		fclose(stdout);
 		fclose(stderr);
@@ -310,34 +353,34 @@ int main(int argc, char *argv[]) {
 		int cpm, sum = 0, count = 0;
 
 		while (Running) {
-			if ((cpm = geiger_get_cpm(device_type, fd)) > 0) {
+			if ((cpm = geiger_get_cpm(cfg.device_type, fd)) > 0) {
 				sum += cpm;
 				count++;
 			}
 
-			if (difftime(time(NULL), last) >= interval) {
+			if (difftime(time(NULL), last) >= cfg.interval) {
 				if (count > 0) {
 					struct tm *tm = gmtime(&last);
 					cpm = div_round_closest(sum, count);
 
-					if (debug) {
+					if (verbose) {
 						char *cpmstr;
 						asprintf(&cpmstr, "CPM: %d (= %d/%d), Timestamp: %s", cpm, sum, count, asctime(tm));
 						log_inform(cpmstr);
 						free(cpmstr);
 					}
 
-					if (string_isset(netc_id))
-						if(!send_netc(netc_id, cpm))
+					if (string_isset(cfg.netc_id))
+						if(!send_netc(cfg.netc_id, cpm))
 							log_warn("Upload to netc.com failed.");
-					if (string_isset(radmon_user) && string_isset(radmon_pass))
-						if (!send_radmon(radmon_user, radmon_pass, cpm, tm))
+					if (string_isset(cfg.radmon_user) && string_isset(cfg.radmon_pass))
+						if (!send_radmon(cfg.radmon_user, cfg.radmon_pass, cpm, tm))
 							log_warn("Upload to radmon.org failed.");
-					if (string_isset(safecast_key) && string_isset(location))
-						if(!send_safecast(safecast_key, safecast_device, cpm, tm, latitude, longitude, location))
+					if (string_isset(cfg.safecast_key) && string_isset(cfg.location))
+						if(!send_safecast(cfg.safecast_key, cfg.safecast_device, cpm, tm, cfg.latitude, cfg.longitude, cfg.location))
 							log_warn("Upload to safecast.org failed.");
-					if (string_isset(gmcmap_user) && string_isset(gmcmap_device))
-						if(!send_gmcmap(gmcmap_user, gmcmap_device, cpm))
+					if (string_isset(cfg.gmcmap_user) && string_isset(cfg.gmcmap_device))
+						if(!send_gmcmap(cfg.gmcmap_user, cfg.gmcmap_device, cpm))
 							log_warn("Upload to gmcmap.com failed.");
 
 					time(&last);
@@ -347,23 +390,16 @@ int main(int argc, char *argv[]) {
 					log_exclaim("Reading ZERO value from Geiger tube.");
 			}
 
-			// Let the cpu breathe.
+			// Let the CPU breathe.
 			sleep(1);
 		}
 
-		geiger_close(device_type, fd);
+		geiger_close(cfg.device_type, fd);
 	}
 	else
 		perror("FATAL ERROR: Could not access Geiger counter");
 
-	try_free(device_port);
-	try_free(location);
-	try_free(netc_id);
-	try_free(radmon_user);
-	try_free(radmon_pass);
-	try_free(safecast_key);
-	try_free(gmcmap_user);
-	try_free(gmcmap_device);
+	free_settings(&cfg);
 
 	log_close();
 
