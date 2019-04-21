@@ -27,7 +27,6 @@
 
 typedef enum { SIM, DIY, GQ } Geiger;
 static const char *GeigerNames[] = { "Geiger simulator", "DIY/MyGeiger/NET-IO Geiger Kit", "GQ GMC Geiger Counter" };
-static volatile bool Running = true;
 
 typedef struct {
 	unsigned int interval;
@@ -42,6 +41,8 @@ typedef struct {
 	unsigned int safecast_device;
 	char *gmcmap_user, *gmcmap_device;
 } Settings;
+
+static volatile bool Running = true;
 
 int div_round_closest(int n, int d) {
 	return (n < 0) ^ (d < 0) ? (n - d/2) / d : (n + d/2) / d;
@@ -75,7 +76,7 @@ void signal_handler(int sig) {
 	}
 }
 
-int baud_rate(int bps) {
+speed_t baud_rate(unsigned int bps) {
 	switch (bps) {
 		case 1200:
 			return B1200;
@@ -94,7 +95,7 @@ int baud_rate(int bps) {
 		case 115200:
 			return B115200;
 		default:
-			return -1;	// Undefined baud rate.
+			return B0;	// Hang up.
 	}
 }
 
@@ -217,20 +218,22 @@ void print_usage() {
 	printf("   ___    Geiger Counter LOGger daemon\n");
 	printf("   \\_/    Version %s (Build %s)\n", GCLOG_VERSION, GCLOG_BUILD);
 	printf(".--,O.--,\n");
-	printf(" \\/   \\/  Copyright (C) 2014-18 Steffen Lange, gclog@stelas.de\n\n");
+	printf(" \\/   \\/  Copyright (C) 2014-19 Steffen Lange, gclog@stelas.de\n\n");
 	printf("This program comes with ABSOLUTELY NO WARRANTY.\n");
 	printf("This is free software, and you are welcome to redistribute it\n");
 	printf("under certain conditions. See the file COPYING for details.\n\n");
-	printf("Usage: gclog -c <file> [-v]\n");
+	printf("Usage: gclog -c <file> [-vdh]\n");
+	printf("  -h         display this help information\n\n");
 	printf("  -c <file>  load configuration from file\n");
-	printf("  -v         activate verbose mode\n\n");
+	printf("  -d         run in debug mode\n\n");
+	printf("  -v         turn on verbose logging\n\n");
 }
 
 void init_settings(Settings *s) {
 	s->interval = 60;
 	s->device_type = SIM;
 	s->device_port = NULL;
-	s->device_baudrate = B9600;
+	s->device_baudrate = B0;
 	s->latitude = 0.0;
 	s->longitude = 0.0;
 	s->location = NULL;
@@ -255,48 +258,35 @@ void free_settings(Settings *s) {
 }
 
 int main(int argc, char *argv[]) {
-	bool verbose = false;
-
+	bool verbose = false, debug = false;
 	Settings cfg;
+
 	init_settings(&cfg);
 
-	print_usage();
-
-	pid_t pid;
-
-	if ((pid = fork()) == -1) {
-		fprintf(stderr, "%s: fork() failed.\n", argv[0]);
-		exit(EXIT_FAILURE);
-	}
-	if (pid > 0) {
-		// Luke, I'm your father.
-		exit(EXIT_SUCCESS);
-	}
-
-	if (setsid() == -1) {
-		fprintf(stderr, "%s: setsid() failed.\n", argv[0]);
-		exit(EXIT_FAILURE);
-	}
-
-	signal(SIGTERM, signal_handler);
-	signal(SIGINT, signal_handler);
-	signal(SIGQUIT, signal_handler);
-	signal(SIGHUP, signal_handler);
-
-	log_open("gclog");
-
+	/* Parsing command-line options */
 	int opt;
 	struct map_t *ini;
 	char *val;
 
-	while ((opt = getopt(argc, argv, "c:v")) != -1) {
+	while ((opt = getopt(argc, argv, "c:vdh")) != -1) {
 		switch (opt) {
+			case 'h':
+				print_usage();
+				free_settings(&cfg);
+				exit(EXIT_SUCCESS);
+				break;
+
 			case 'v':
 				verbose = true;
 				break;
 
+			case 'd':
+				debug = true;
+				break;
+
 			case 'c':
 				ini = load_ini(optarg);
+				free_settings(&cfg);
 				if ((val = map_get(ini, "interval")) != NULL)
 					cfg.interval = MAX(atoi(val), 1);
 				if ((val = map_get(ini, "device.type")) != NULL) {
@@ -342,66 +332,106 @@ int main(int argc, char *argv[]) {
 	if (verbose)
 		printf("Configuration:\n\t\t%s on %s @ %#07o,\n\t\tLocation: %s (%.4f, %.4f)\n\t\tnetc.com: %s,\n\t\tradmon.org: %s / %s,\n\t\tsafecast.org: %s / Device ID %u,\n\t\tgmcmap.com: %s / Device ID %s,\n\t\t%us interval\n\n", GeigerNames[cfg.device_type], cfg.device_port, cfg.device_baudrate, cfg.location, cfg.latitude, cfg.longitude, cfg.netc_id, cfg.radmon_user, cfg.radmon_pass, cfg.safecast_key, cfg.safecast_device, cfg.gmcmap_user, cfg.gmcmap_device, cfg.interval);
 
+	/* Initializing device communication */
 	int fd = -1;
 
-	if (string_isset(cfg.device_port) && ((fd = geiger_open(cfg.device_type, cfg.device_port, cfg.device_baudrate)) != -1)) {
+	if ((fd = geiger_open(cfg.device_type, cfg.device_port, cfg.device_baudrate)) == -1) {
+		perror("FATAL ERROR: Could not access Geiger counter");
+		free_settings(&cfg);
+		exit(EXIT_FAILURE);
+	}
+
+	/* Self-daemonizing */
+	pid_t pid;
+
+	if (!debug) {
+		if ((pid = fork()) == -1) {
+			fprintf(stderr, "%s: fork() failed.\n", argv[0]);
+			geiger_close(cfg.device_type, fd);
+			free_settings(&cfg);
+			exit(EXIT_FAILURE);
+		}
+		if (pid > 0) {
+			// Luke, I'm your father.
+			geiger_close(cfg.device_type, fd);
+			free_settings(&cfg);
+			exit(EXIT_SUCCESS);
+		}
+
+		if (setsid() == -1) {
+			fprintf(stderr, "%s: setsid() failed.\n", argv[0]);
+			geiger_close(cfg.device_type, fd);
+			free_settings(&cfg);
+			exit(EXIT_FAILURE);
+		}
+
 		fclose(stdin);
 		fclose(stdout);
 		fclose(stderr);
+	}
 
-		time_t last = time(NULL);
-		int cpm, sum = 0, count = 0;
+	signal(SIGTERM, signal_handler);
+	signal(SIGINT, signal_handler);
+	signal(SIGQUIT, signal_handler);
+	signal(SIGHUP, signal_handler);
 
-		while (Running) {
-			if ((cpm = geiger_get_cpm(cfg.device_type, fd)) > 0) {
-				sum += cpm;
-				count++;
-			}
+	/* Main loop */
+	time_t last = time(NULL);
+	int cpm, sum = 0, count = 0;
 
-			if (difftime(time(NULL), last) >= cfg.interval) {
-				if (count > 0) {
-					struct tm *tm = gmtime(&last);
-					cpm = div_round_closest(sum, count);
+	log_open("gclog");
 
-					if (verbose) {
-						char *cpmstr;
-						asprintf(&cpmstr, "CPM: %d (= %d/%d), Timestamp: %s", cpm, sum, count, asctime(tm));
-						log_inform(cpmstr);
-						free(cpmstr);
-					}
+	if (verbose)
+		log_debug("Entering main loop...");
 
-					if (string_isset(cfg.netc_id))
-						if(!send_netc(cfg.netc_id, cpm))
-							log_warn("Upload to netc.com failed.");
-					if (string_isset(cfg.radmon_user) && string_isset(cfg.radmon_pass))
-						if (!send_radmon(cfg.radmon_user, cfg.radmon_pass, cpm, tm))
-							log_warn("Upload to radmon.org failed.");
-					if (string_isset(cfg.safecast_key) && string_isset(cfg.location))
-						if(!send_safecast(cfg.safecast_key, cfg.safecast_device, cpm, tm, cfg.latitude, cfg.longitude, cfg.location))
-							log_warn("Upload to safecast.org failed.");
-					if (string_isset(cfg.gmcmap_user) && string_isset(cfg.gmcmap_device))
-						if(!send_gmcmap(cfg.gmcmap_user, cfg.gmcmap_device, cpm))
-							log_warn("Upload to gmcmap.com failed.");
-
-					time(&last);
-					sum = count = 0;
-				}
-				else
-					log_exclaim("Reading ZERO value from Geiger tube.");
-			}
-
-			// Let the CPU breathe.
-			sleep(1);
+	while (Running) {
+		if ((cpm = geiger_get_cpm(cfg.device_type, fd)) > 0) {
+			sum += cpm;
+			count++;
 		}
 
-		geiger_close(cfg.device_type, fd);
+		if (difftime(time(NULL), last) >= cfg.interval) {
+			if (count > 0) {
+				struct tm *tm = gmtime(&last);
+				cpm = div_round_closest(sum, count);
+
+				if (verbose) {
+					char *cpmstr;
+					asprintf(&cpmstr, "CPM: %d (= %d/%d), Timestamp: %s", cpm, sum, count, asctime(tm));
+					log_inform(cpmstr);
+					free(cpmstr);
+				}
+
+				if (string_isset(cfg.netc_id))
+					if(!send_netc(cfg.netc_id, cpm))
+						log_warn("Upload to netc.com failed.");
+				if (string_isset(cfg.radmon_user) && string_isset(cfg.radmon_pass))
+					if (!send_radmon(cfg.radmon_user, cfg.radmon_pass, cpm, tm))
+						log_warn("Upload to radmon.org failed.");
+				if (string_isset(cfg.safecast_key) && string_isset(cfg.location))
+					if(!send_safecast(cfg.safecast_key, cfg.safecast_device, cpm, tm, cfg.latitude, cfg.longitude, cfg.location))
+						log_warn("Upload to safecast.org failed.");
+				if (string_isset(cfg.gmcmap_user) && string_isset(cfg.gmcmap_device))
+					if(!send_gmcmap(cfg.gmcmap_user, cfg.gmcmap_device, cpm))
+						log_warn("Upload to gmcmap.com failed.");
+
+				time(&last);
+				sum = count = 0;
+			}
+			else
+				log_exclaim("Reading ZERO value from Geiger tube.");
+		}
+
+		// Let the CPU breathe.
+		sleep(1);
 	}
-	else
-		perror("FATAL ERROR: Could not access Geiger counter");
 
+	if (verbose)
+		log_debug("Main loop exited. Cleaning up...");
+
+	geiger_close(cfg.device_type, fd);
 	free_settings(&cfg);
-
 	log_close();
 
-	return fd == -1 ? EXIT_FAILURE : EXIT_SUCCESS;
+	return EXIT_SUCCESS;
 }
