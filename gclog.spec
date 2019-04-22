@@ -1,5 +1,5 @@
 Name:           gclog
-Version:        0.2.4
+Version:        0.2.5
 Release:        1%{?dist}
 Summary:        Geiger Counter Logger
 License:        GPLv3
@@ -50,6 +50,8 @@ fi
 %doc README* CHANGELOG TODO COPYING
 
 %changelog
+* Mon Apr 22 2019 Steffen Lange <gclog@stelas.de> 0.2.5-1
+- More minor changes
 * Sat Apr 14 2018 Steffen Lange <gclog@stelas.de> 0.2.4-1
 - Minor enhancements
 * Sun Feb 28 2016 Steffen Lange <gclog@stelas.de> 0.2.3-1
