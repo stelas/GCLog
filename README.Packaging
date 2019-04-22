@@ -1,6 +1,15 @@
 Packaging Geiger Counter Logger
 ===============================
 
+Arch Linux
+----------
+Recipe from: https://wiki.archlinux.org/index.php/creating_packages
+
+1. pacman -S base-devel
+2. Copy PKGBUILD to working directory
+3. makepkg
+4. PKG package is created in working directory
+
 OpenWrt
 -------
 Recipe from: https://openwrt.org/docs/guide-developer/using_the_sdk
