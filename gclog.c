@@ -16,7 +16,7 @@
 #include "tcpcli.h"
 
 #define GCLOG_VERSION	"0.2.5"
-#define GCLOG_BUILD	"2019-04-19"
+#define GCLOG_BUILD	"2019-04-22"
 #define BUF_SIZE	1000
 #ifndef MIN
 #define MIN(a,b)	((a)<(b)?(a):(b))

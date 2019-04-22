@@ -3,7 +3,6 @@
 ########
 
 * Migrate from init script to systemd service
-* Implement better logging and debug mode
 * Multithreading: run I/O operations in separate threads
 * HTTPS: add SSL support to TCP client
 * Support for Radioactive@Home (BOINC platform)

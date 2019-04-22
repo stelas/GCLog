@@ -8,7 +8,7 @@
 .B gclog
 .RB [ \-c
 .IR file ]
-.RB [ \-v ]
+.RB [ \-vdh ]
 
 .SH DESCRIPTION
 \fBGCLOG\fP is a lightweight daemon running in the background and constantly reporting your Geiger counter readings to various radiation monitoring websites. With a small footprint and minimal dependencies it is aimed to run on Linux embedded computers.
@@ -20,7 +20,15 @@ Load configuration from file.
 
 .TP
 .B -v
-Activate verbose mode.
+Turn on verbose logging.
+
+.TP
+.B -d
+Run in debug mode.
+
+.TP
+.B -h
+Display help information.
 
 .SH CONFIGURATION FILE OPTIONS
 .TP
