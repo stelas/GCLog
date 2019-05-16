@@ -2,7 +2,7 @@ Name:           gclog
 Version:        0.2.5
 Release:        1%{?dist}
 Summary:        Geiger Counter Logger
-License:        GPLv3
+License:        GPL-3.0-or-later
 Group:          Applications/System
 Url:            http://www.dateihal.de/cms/gclog
 Source0:        http://www.dateihal.de/%{name}/%{name}-%{version}.tar.gz
