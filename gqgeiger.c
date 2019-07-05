@@ -36,7 +36,7 @@ int gq_get_cpm(int device) {
 		gq_read(device, buf, 2);
 
 	// Mask out upper 2 bits as mentioned in GQ-RFC1201.
-	return (buf[0] & 0x3f) * 256 + buf[1];
+	return (((unsigned char)buf[0] & 0x3f) << 8) | ((unsigned char)buf[1] & 0xff);
 }
 
 bool gq_set_heartbeat_off(int device) {
