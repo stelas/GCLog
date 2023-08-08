@@ -1,0 +1,11 @@
+[Unit]
+Description=Geiger Counter Logger
+After=network.target
+
+[Service]
+Type=forking
+ExecStart=/usr/bin/gclog -c /etc/gclog.conf
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
